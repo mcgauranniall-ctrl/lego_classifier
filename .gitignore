@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+
+# Models (too large for git)
+*.pt
+runs/
+
+# Node
+web/node_modules/
+web/.next/
+
+# Data (large generated files — rebuild with scripts/)
+data/embeddings.npy
+data/embeddings_index.json
+data/images/
+data/parts.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local
