@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEGO Piece Identifier</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #888;
+    margin-bottom: 32px;
+    font-size: 0.95rem;
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed #444;
+    border-radius: 16px;
+    padding: 60px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #16213e;
+    margin-bottom: 24px;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: #e94560;
+    background: #1a1a3e;
+  }
+
+  .drop-zone p {
+    font-size: 1.1rem;
+    color: #aaa;
+    margin-bottom: 12px;
+  }
+
+  .drop-zone .browse {
+    color: #e94560;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .drop-zone input { display: none; }
+
+  /* Annotated image */
+  .annotated-image {
+    text-align: center;
+    margin-bottom: 24px;
+    display: none;
+    position: relative;
+  }
+
+  .annotated-image canvas {
+    max-width: 100%;
+    border-radius: 12px;
+    border: 2px solid #333;
+  }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    display: none;
+  }
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #333;
+    border-top: 4px solid #e94560;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading p { color: #aaa; }
+
+  /* Results */
+  .results { display: none; }
+
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .results-header h2 { font-size: 1.4rem; color: #fff; }
+
+  .results-meta {
+    color: #888;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+  }
+
+  /* Parts list */
+  .part-card {
+    background: #16213e;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    transition: background 0.2s;
+  }
+
+  .part-card:hover { background: #1a2744; }
+
+  .part-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .part-count {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #e94560;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .part-img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 8px;
+    padding: 4px;
+  }
+
+  .part-info { flex: 1; }
+
+  .part-name {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .part-id { color: #888; font-size: 0.85rem; }
+
+  .part-score {
+    font-size: 0.85rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  .score-high { background: #0a3d2a; color: #4ade80; }
+  .score-med  { background: #3d3a0a; color: #facc15; }
+  .score-low  { background: #3d0a0a; color: #f87171; }
+
+  .part-link {
+    color: #e94560;
+    text-decoration: none;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .part-link:hover { text-decoration: underline; }
+
+  /* Feedback */
+  .feedback-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #253050;
+  }
+
+  .feedback-row label {
+    color: #888;
+    font-size: 0.85rem;
+  }
+
+  .fb-btn {
+    border: none;
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 600;
+  }
+
+  .fb-correct {
+    background: #0a3d2a;
+    color: #4ade80;
+  }
+
+  .fb-correct:hover { background: #0d4f36; }
+
+  .fb-wrong {
+    background: #3d0a0a;
+    color: #f87171;
+  }
+
+  .fb-wrong:hover { background: #4f0d0d; }
+
+  .fb-correct.active {
+    background: #4ade80;
+    color: #000;
+  }
+
+  .fb-wrong.active {
+    background: #f87171;
+    color: #000;
+  }
+
+  .correction-form {
+    display: none;
+    margin-top: 8px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .correction-form input {
+    background: #0f1629;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    flex: 1;
+  }
+
+  .correction-form input::placeholder { color: #555; }
+
+  .fb-submit {
+    background: #e94560;
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .fb-submit:hover { background: #c73652; }
+
+  .fb-sent {
+    color: #4ade80;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-block;
+    background: #e94560;
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn:hover { background: #c73652; }
+
+  .error {
+    background: #3d0a0a;
+    color: #f87171;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .details-toggle {
+    color: #888;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-top: 16px;
+    text-align: center;
+  }
+
+  .details-toggle:hover { color: #e94560; }
+
+  .detection-details {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    background: #0f1629;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-family: 'Courier New', monospace;
+    color: #aaa;
+    white-space: pre-wrap;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>LEGO Piece Identifier</h1>
+  <p class="subtitle">Upload a photo of LEGO pieces to identify them</p>
+
+  <div class="drop-zone" id="dropZone">
+    <p>Drag & drop an image here</p>
+    <p>or <span class="browse">click to browse</span></p>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+
+  <div class="annotated-image" id="annotatedImage">
+    <canvas id="bboxCanvas"></canvas>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Identifying pieces... this may take a few seconds</p>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <div class="results" id="results">
+    <div class="results-header">
+      <h2 id="resultsTitle"></h2>
+      <button class="btn" onclick="reset()">New Scan</button>
+    </div>
+    <p class="results-meta" id="resultsMeta"></p>
+    <div id="partsList"></div>
+    <div class="details-toggle" onclick="toggleDetails()">Show detection details</div>
+    <div class="detection-details" id="detectionDetails"></div>
+  </div>
+</div>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const loading = document.getElementById('loading');
+const error = document.getElementById('error');
+const results = document.getElementById('results');
+const annotatedImage = document.getElementById('annotatedImage');
+const bboxCanvas = document.getElementById('bboxCanvas');
+
+let lastData = null;
+let uploadedImageUrl = null;
+let originalImage = null;  // clean Image object for cropping
+
+// Colors for bounding boxes — one per detection
+const BBOX_COLORS = [
+  '#e94560', '#4ade80', '#facc15', '#60a5fa',
+  '#c084fc', '#fb923c', '#22d3ee', '#f472b6',
+  '#a3e635', '#fbbf24', '#38bdf8', '#e879f9',
+];
+
+// Drop zone events
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.type.startsWith('image/')) {
+    showError('Please upload an image file.');
+    return;
+  }
+
+  uploadedImageUrl = URL.createObjectURL(file);
+  dropZone.style.display = 'none';
+  error.style.display = 'none';
+  results.style.display = 'none';
+  annotatedImage.style.display = 'none';
+  loading.style.display = 'block';
+
+  const form = new FormData();
+  form.append('image', file);
+
+  fetch('/api/analyze', { method: 'POST', body: form })
+    .then(r => {
+      if (!r.ok) throw new Error('Server error: ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      lastData = data;
+      drawAnnotatedImage(data);
+    })
+    .catch(err => {
+      loading.style.display = 'none';
+      showError(err.message);
+    });
+}
+
+function getCropBase64(partId) {
+  // Find all bboxes for this part_id and crop them from the original image
+  if (!originalImage || !lastData) return '';
+  for (const det of lastData.detections) {
+    if (det.matches && det.matches.length > 0 && det.matches[0].part_id === partId) {
+      const b = det.bbox;
+      const w = b.x2 - b.x1;
+      const h = b.y2 - b.y1;
+      if (w <= 0 || h <= 0) continue;
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(originalImage, b.x1, b.y1, w, h, 0, 0, w, h);
+      return c.toDataURL('image/png');
+    }
+  }
+  return '';
+}
+
+function drawAnnotatedImage(data) {
+  const img = new window.Image();
+  img.onload = () => {
+    originalImage = img;  // store clean copy for cropping
+    const canvas = bboxCanvas;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+
+    // Draw the image
+    ctx.drawImage(img, 0, 0);
+
+    // Draw bounding boxes
+    const scale = Math.max(1, Math.min(img.naturalWidth, img.naturalHeight) / 300);
+
+    for (let i = 0; i < data.detections.length; i++) {
+      const det = data.detections[i];
+      const b = det.bbox;
+      const color = BBOX_COLORS[i % BBOX_COLORS.length];
+      const topMatch = det.matches && det.matches.length > 0 ? det.matches[0] : null;
+
+      // Draw box
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2 * scale;
+      ctx.strokeRect(b.x1, b.y1, b.x2 - b.x1, b.y2 - b.y1);
+
+      // Label
+      const label = topMatch
+        ? topMatch.name + ' (' + (topMatch.score * 100).toFixed(0) + '%)'
+        : 'Unknown';
+
+      ctx.font = `bold ${11 * scale}px sans-serif`;
+      const metrics = ctx.measureText(label);
+      const labelH = 14 * scale;
+      const labelW = metrics.width + 8 * scale;
+
+      // Label background
+      ctx.fillStyle = color;
+      const labelY = b.y1 - labelH - 2 * scale;
+      if (labelY > 0) {
+        ctx.fillRect(b.x1, labelY, labelW, labelH);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(label, b.x1 + 4 * scale, labelY + 10.5 * scale);
+      } else {
+        ctx.fillRect(b.x1, b.y1, labelW, labelH);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(label, b.x1 + 4 * scale, b.y1 + 10.5 * scale);
+      }
+    }
+
+    loading.style.display = 'none';
+    annotatedImage.style.display = 'block';
+    showResults(data);
+  };
+  img.src = uploadedImageUrl;
+}
+
+function showError(msg) {
+  error.textContent = msg;
+  error.style.display = 'block';
+}
+
+function showResults(data) {
+  results.style.display = 'block';
+
+  const title = document.getElementById('resultsTitle');
+  const meta = document.getElementById('resultsMeta');
+  const list = document.getElementById('partsList');
+  const details = document.getElementById('detectionDetails');
+
+  title.textContent = data.total_pieces + ' piece' + (data.total_pieces !== 1 ? 's' : '') + ' found';
+  meta.textContent = data.unique_parts + ' unique part' + (data.unique_parts !== 1 ? 's' : '')
+    + ' | ' + (data.processing_time_ms / 1000).toFixed(1) + 's processing time';
+
+  list.innerHTML = '';
+  if (data.grouped_parts.length === 0) {
+    list.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">No LEGO pieces identified in this image.</p>';
+  }
+
+  for (const part of data.grouped_parts) {
+    const scoreClass = part.best_score >= 0.75 ? 'score-high' : part.best_score >= 0.5 ? 'score-med' : 'score-low';
+    const scoreLabel = (part.best_score * 100).toFixed(0) + '%';
+    const safeId = part.part_id.replace(/[^a-zA-Z0-9]/g, '_');
+
+    const imgTag = part.image_url
+      ? '<img class="part-img" src="' + part.image_url + '" alt="' + part.name + '" onerror="this.style.display=\'none\'">'
+      : '';
+
+    const card = document.createElement('div');
+    card.className = 'part-card';
+    card.innerHTML =
+      '<div class="part-main">'
+      + '<div class="part-count">' + part.count + 'x</div>'
+      + imgTag
+      + '<div class="part-info">'
+      +   '<div class="part-name">' + part.name + '</div>'
+      +   '<div class="part-id">ID: ' + part.part_id + '</div>'
+      + '</div>'
+      + '<span class="part-score ' + scoreClass + '">' + scoreLabel + '</span>'
+      + '<a class="part-link" href="' + part.bricklink_url + '" target="_blank">BrickLink</a>'
+      + '</div>'
+      + '<div class="feedback-row" id="fb-row-' + safeId + '">'
+      +   '<label>Is this correct?</label>'
+      +   '<button class="fb-btn fb-correct" onclick="sendFeedback(\'' + part.part_id + '\', true, this)">Yes</button>'
+      +   '<button class="fb-btn fb-wrong" onclick="showCorrection(\'' + safeId + '\', this)">No</button>'
+      + '</div>'
+      + '<div class="correction-form" id="correction-' + safeId + '" style="display:none">'
+      +   '<input type="text" id="corr-input-' + safeId + '" placeholder="Correct part ID or name (e.g. 3001 or Brick 2x4)">'
+      +   '<button class="fb-submit" onclick="submitCorrection(\'' + part.part_id + '\', \'' + safeId + '\')">Submit</button>'
+      + '</div>';
+
+    list.appendChild(card);
+  }
+
+  // Detection details
+  let detailsText = '';
+  for (const det of data.detections) {
+    const b = det.bbox;
+    detailsText += det.detection_id + ': bbox=(' + b.x1 + ',' + b.y1 + ',' + b.x2 + ',' + b.y2 + ') conf=' + det.detection_confidence + '\n';
+    for (const m of det.matches) {
+      detailsText += '  #' + m.rank + ' ' + m.part_id + ' ' + m.name + ' score=' + m.score + '\n';
+    }
+    detailsText += '\n';
+  }
+  details.textContent = detailsText;
+}
+
+function sendFeedback(partId, correct, btn) {
+  const row = btn.closest('.feedback-row');
+  // Find the bbox for this part
+  let bbox = null;
+  for (const det of lastData.detections) {
+    if (det.matches && det.matches.length > 0 && det.matches[0].part_id === partId) {
+      bbox = det.bbox;
+      break;
+    }
+  }
+
+  const body = {
+    part_id: partId,
+    correct: correct,
+    bbox: bbox,
+    crop_image: getCropBase64(partId),
+    image_width: lastData.image_width,
+    image_height: lastData.image_height,
+  };
+
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).then(r => {
+    if (!r.ok) throw new Error('Failed');
+    btn.classList.add('active');
+    row.querySelectorAll('.fb-btn').forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
+    btn.style.opacity = '1';
+    const msg = document.createElement('span');
+    msg.className = 'fb-sent';
+    msg.textContent = ' Thanks!';
+    row.appendChild(msg);
+  }).catch(() => {});
+}
+
+function showCorrection(safeId, btn) {
+  btn.classList.add('active');
+  const row = btn.closest('.feedback-row');
+  row.querySelector('.fb-correct').disabled = true;
+  row.querySelector('.fb-correct').style.opacity = '0.6';
+  btn.disabled = true;
+  const form = document.getElementById('correction-' + safeId);
+  form.style.display = 'flex';
+  form.querySelector('input').focus();
+}
+
+function submitCorrection(originalPartId, safeId) {
+  const input = document.getElementById('corr-input-' + safeId);
+  const correction = input.value.trim();
+  if (!correction) { input.focus(); return; }
+
+  // Find the bbox for this part
+  let bbox = null;
+  for (const det of lastData.detections) {
+    if (det.matches && det.matches.length > 0 && det.matches[0].part_id === originalPartId) {
+      bbox = det.bbox;
+      break;
+    }
+  }
+
+  const body = {
+    part_id: originalPartId,
+    correct: false,
+    correction: correction,
+    bbox: bbox,
+    crop_image: getCropBase64(originalPartId),
+    image_width: lastData.image_width,
+    image_height: lastData.image_height,
+  };
+
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).then(r => {
+    if (!r.ok) throw new Error('Failed');
+    const form = document.getElementById('correction-' + safeId);
+    form.innerHTML = '<span class="fb-sent">Correction saved - thank you!</span>';
+  }).catch(() => {});
+}
+
+function toggleDetails() {
+  const el = document.getElementById('detectionDetails');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function reset() {
+  annotatedImage.style.display = 'none';
+  results.style.display = 'none';
+  error.style.display = 'none';
+  loading.style.display = 'none';
+  dropZone.style.display = 'block';
+  fileInput.value = '';
+  lastData = null;
+  uploadedImageUrl = null;
+  originalImage = null;
+  document.getElementById('detectionDetails').style.display = 'none';
+}
+</script>
+</body>
+</html>

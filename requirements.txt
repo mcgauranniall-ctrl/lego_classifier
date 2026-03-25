@@ -1,6 +1,5 @@
-# ML Pipeline
+# Detection (SAM2 + YOLO fallback)
 ultralytics>=8.1.0
-clip @ git+https://github.com/openai/CLIP.git
 torch>=2.0.0
 torchvision>=0.15.0
 numpy>=1.24.0
@@ -10,6 +9,3 @@ Pillow>=10.0.0
 fastapi>=0.110.0
 uvicorn[standard]>=0.27.0
 python-multipart>=0.0.9
-
-# Build script
-requests>=2.31.0

@@ -12,15 +12,11 @@ venv/
 *.pt
 runs/
 
-# Node
-web/node_modules/
-web/.next/
+# Redundant/archived code
+_redundant/
 
-# Data (large generated files — rebuild with scripts/)
-data/embeddings.npy
-data/embeddings_index.json
-data/images/
-data/parts.json
+# Data
+data/feedback_crops/
 
 # OS
 .DS_Store
